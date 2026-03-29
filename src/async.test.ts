@@ -129,7 +129,7 @@ describe("instant_promise", () => {
         return instant_promise(v + 1);
       })
       .then((v) => {
-        results.push(v as number);
+        results.push(v);
         return instant_promise(v + 1);
       });
     expect(results).toEqual([1, 2]);
