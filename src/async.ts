@@ -37,6 +37,7 @@ class InstantPromise<T> implements PromiseLike<T> {
 }
 
 /**Returns a promise that executes synchronously when using .then() and resolves immediately with the given value.*/
-export function instant_promise<T>(value: T): PromiseLike<T> {
+export function instant_promise<T>(value: T | PromiseLike<T>): PromiseLike<T> {
+  if (is_promise_like(value)) return value;
   return new InstantPromise(value);
 }
