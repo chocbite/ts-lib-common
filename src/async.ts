@@ -22,16 +22,16 @@ export function sync_resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
   if (is_promise_like(value)) return value;
   return {
     then<TResult1 = T, TResult2 = never>(
-      onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
-      onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+      on_fulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+      on_rejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
     ): PromiseLike<TResult1 | TResult2> {
       try {
-        const result = onfulfilled ? onfulfilled(value) : value;
+        const result = on_fulfilled ? on_fulfilled(value) : value;
         if (is_promise_like(result)) return result;
         return sync_resolve(result as TResult1);
       } catch (error) {
-        if (onrejected) {
-          const rejected_result = onrejected(error);
+        if (on_rejected) {
+          const rejected_result = on_rejected(error);
           if (is_promise_like(rejected_result)) return rejected_result;
           return sync_resolve(rejected_result);
         }
@@ -45,13 +45,13 @@ export function sync_resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
 export function sync_reject<T>(error: T | PromiseLike<T>): PromiseLike<T> {
   if (is_promise_like(error)) return error;
   return {
-    then<TResult1 = T, TResult2 = never>(
-      _onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
-      onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+    then<TResult1, TResult2 = never>(
+      _on_fulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+      on_rejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
     ): PromiseLike<TResult1 | TResult2> {
       try {
-        if (onrejected) {
-          const rejected_result = onrejected(error);
+        if (on_rejected) {
+          const rejected_result = on_rejected(error);
           if (is_promise_like(rejected_result)) return rejected_result;
           return sync_resolve(rejected_result);
         }
