@@ -1,4 +1,5 @@
 export * from "./array";
+export * from "./async";
 export * from "./debounce";
 export * from "./equals";
 export * from "./ip";
@@ -19,20 +20,6 @@ export const object_empty = (obj: object): boolean => {
   return true;
 };
 
-//                _______     ___   _  _____
-//         /\    / ____\ \   / / \ | |/ ____|
-//        /  \  | (___  \ \_/ /|  \| | |
-//       / /\ \  \___ \  \   / | . ` | |
-//      / ____ \ ____) |  | |  | |\  | |____
-//     /_/    \_\_____/   |_|  |_| \_|\_____|
-
-export function sleep<T = void>(ms: number, arg?: T): Promise<T> {
-  return new Promise((a) => setTimeout(a, ms, arg));
-}
-export function sleep_lazy<T = void>(ms: number, arg?: () => T): Promise<T> {
-  return new Promise((a) => setTimeout((arg: () => T) => a(arg()), ms, arg));
-}
-
 //      _____ _____ ______ ______ _____ _   _  _____
 //     |  __ \_   _|  ____|  ____|_   _| \ | |/ ____|
 //     | |  | || | | |__  | |__    | | |  \| | |  __
@@ -42,7 +29,7 @@ export function sleep_lazy<T = void>(ms: number, arg?: () => T): Promise<T> {
 
 export function array_diff<T>(
   main: T[],
-  second: T[]
+  second: T[],
 ): { added: T[]; removed: T[] } {
   const added = second.filter((x) => !main.includes(x));
   const removed = main.filter((x) => !second.includes(x));
@@ -51,7 +38,7 @@ export function array_diff<T>(
 
 export function object_key_diff<T1 extends object, T2 extends object>(
   main: T1,
-  second: T2
+  second: T2,
 ): { added: string[]; removed: string[] } {
   return array_diff(Object.keys(main), Object.keys(second));
 }
