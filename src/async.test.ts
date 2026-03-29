@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { instant_promise, is_promise_like, sleep, sleep_lazy } from "./async";
+import {
+  is_promise_like,
+  sleep,
+  sleep_lazy,
+  sync_reject,
+  sync_resolve,
+} from "./async";
 
 describe("is_promise_like", () => {
   it("returns true for a native Promise", () => {
@@ -11,7 +17,7 @@ describe("is_promise_like", () => {
   });
 
   it("returns true for an instant_promise", () => {
-    expect(is_promise_like(instant_promise(42))).toBe(true);
+    expect(is_promise_like(sync_resolve(42))).toBe(true);
   });
 
   it("returns false for null", () => {
@@ -36,6 +42,131 @@ describe("is_promise_like", () => {
 
   it("returns false for a string", () => {
     expect(is_promise_like("promise")).toBe(false);
+  });
+});
+
+describe("Sync PromiseLike Chaining", () => {
+  it("resolves simple values through multiple .then() calls", () => {
+    let result = "";
+    sync_resolve("a")
+      .then((v) => v + "b")
+      .then((v) => v + "c")
+      .then((v) => {
+        result = v;
+      });
+
+    expect(result).toBe("abc");
+  });
+
+  it("recovers from errors when onrejected returns a value", () => {
+    let recovered_value = "";
+    sync_reject("error")
+      .then(null, (err) => {
+        expect(err).toBe("error");
+        return "recovered";
+      })
+      .then((v) => {
+        recovered_value = v;
+      });
+    expect(recovered_value).toBe("recovered");
+  });
+
+  it("propagates errors if no onrejected is provided", () => {
+    let caught = "";
+    sync_reject("initial failure")
+      .then((v) => v + " ignored")
+      .then(null, (err) => {
+        caught = err as string;
+      });
+
+    expect(caught).toBe("initial failure");
+  });
+});
+
+describe("Native Interop", () => {
+  it("is consumable by Promise.resolve()", async () => {
+    const sync = sync_resolve(100);
+    const native = Promise.resolve(sync);
+
+    expect(native).toBeInstanceOf(Promise);
+    await expect(native).resolves.toBe(100);
+  });
+
+  it("works with async/await keywords", async () => {
+    async function test_async() {
+      const val = await sync_resolve("hello");
+      return val + " world";
+    }
+
+    const result = await test_async();
+    expect(result).toBe("hello world");
+  });
+
+  it("correctly assimilates a native Promise returned from .then()", async () => {
+    const chain = sync_resolve("sync").then(() => Promise.resolve("native"));
+
+    // Because your sync_resolved checks is_promise_like,
+    // it should return the native promise directly or wrap it.
+    const result = await chain;
+    expect(result).toBe("native");
+  });
+});
+
+describe("Execution Timing", () => {
+  it("executes .then() callbacks immediately (synchronously)", () => {
+    const execution_order: string[] = [];
+
+    execution_order.push("start");
+    sync_resolve("data").then((v) => {
+      execution_order.push("sync-callback");
+    });
+    execution_order.push("end");
+
+    expect(execution_order).toEqual(["start", "sync-callback", "end"]);
+  });
+
+  it("contrasts with native Promise timing", async () => {
+    const execution_order: string[] = [];
+
+    execution_order.push("start");
+    Promise.resolve().then(() => {
+      execution_order.push("native-callback");
+    });
+    execution_order.push("end");
+    await Promise.resolve(); // flush native microtasks
+    // In native promises, 'end' comes before 'native-callback'
+    expect(execution_order).toEqual(["start", "end", "native-callback"]);
+  });
+});
+
+describe("Boundary Conditions", () => {
+  it("onfulfilled throwing an error triggers subsequent onrejected", () => {
+    let error_caught = "";
+    sync_resolve("initial")
+      .then(() => {
+        throw new Error("sync failure");
+      })
+      .then(
+        () => "should not happen",
+        (err: Error) => {
+          error_caught = err.message;
+        },
+      );
+
+    expect(error_caught).toBe("sync failure");
+  });
+
+  it("supports null/undefined onfulfilled arguments", () => {
+    const result = sync_resolve(42)
+      .then(undefined)
+      .then((v) => v);
+
+    // Should behave like an identity function
+    let final;
+    result.then((v) => {
+      final = v;
+    });
+    expect(final).toBe(42);
   });
 });
 
@@ -105,51 +236,5 @@ describe("sleep_lazy", () => {
     const promise = sleep_lazy(50, () => ({ key: "value" }));
     vi.advanceTimersByTime(50);
     await expect(promise).resolves.toEqual({ key: "value" });
-  });
-});
-
-describe("instant_promise", () => {
-  it("resolves with the given value", async () => {
-    await expect(instant_promise(42)).resolves.toBe(42);
-  });
-
-  it("calls the then callback synchronously", () => {
-    let called = false;
-    instant_promise("sync").then(() => {
-      called = true;
-    });
-    expect(called).toBe(true);
-  });
-
-  it("chains multiple then calls synchronously", () => {
-    const results: number[] = [];
-    instant_promise(1)
-      .then((v) => {
-        results.push(v);
-        return instant_promise(v + 1);
-      })
-      .then((v) => {
-        results.push(v);
-        return instant_promise(v + 1);
-      });
-    expect(results).toEqual([1, 2]);
-  });
-
-  it("returns the inner promise when then returns a PromiseLike", async () => {
-    const inner = Promise.resolve(100);
-    const result = instant_promise(0).then(() => inner);
-    expect(result).toBe(inner);
-  });
-
-  it("rejects when the then callback throws", async () => {
-    const err = new Error("boom");
-    const result = instant_promise(1).then(() => {
-      throw err;
-    });
-    await expect(result).rejects.toBe(err);
-  });
-
-  it("is recognised as promise-like by is_promise_like", () => {
-    expect(is_promise_like(instant_promise(0))).toBe(true);
   });
 });
