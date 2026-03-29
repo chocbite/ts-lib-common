@@ -18,7 +18,8 @@ export function sleep_lazy<T = void>(ms: number, arg?: () => T): Promise<T> {
 }
 
 /**Returns a promise that executes synchronously when using .then() and resolves immediately with the given value.*/
-export function sync_resolve<T>(value: T): PromiseLike<T> {
+export function sync_resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
+  if (is_promise_like(value)) return value;
   return {
     then<TResult1 = T, TResult2 = never>(
       onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
@@ -27,7 +28,7 @@ export function sync_resolve<T>(value: T): PromiseLike<T> {
       try {
         const result = onfulfilled ? onfulfilled(value) : value;
         if (is_promise_like(result)) return result;
-        return sync_resolve(result) as PromiseLike<TResult1>;
+        return sync_resolve(result as TResult1);
       } catch (error) {
         if (onrejected) {
           const rejected_result = onrejected(error);
@@ -41,7 +42,8 @@ export function sync_resolve<T>(value: T): PromiseLike<T> {
 }
 
 /**Returns a promise that executes synchronously when using .catch() and rejects immediately with the given value.*/
-export function sync_reject<T>(error: T): PromiseLike<T> {
+export function sync_reject<T>(error: T | PromiseLike<T>): PromiseLike<T> {
+  if (is_promise_like(error)) return error;
   return {
     then<TResult1 = T, TResult2 = never>(
       _onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
