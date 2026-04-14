@@ -118,7 +118,7 @@ describe("Sync PromiseLike", () => {
       const execution_order: string[] = [];
 
       execution_order.push("start");
-      sync_resolve("data").then((v) => {
+      sync_resolve("data").then(() => {
         execution_order.push("sync-callback");
       });
       execution_order.push("end");
