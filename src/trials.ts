@@ -34,6 +34,7 @@ type AutoSchema = Parsed<typeof parser>;
 console.warn(parsed);
 if (parsed.ok) {
   const parsed_ok: ManualSchema = parsed.value as AutoSchema;
+  console.warn(parsed_ok);
 }
 
 const parsed2 = parser({
@@ -48,4 +49,5 @@ const parsed2 = parser({
 console.warn(parsed2);
 if (parsed2.ok) {
   const parsed_ok: ManualSchema = parsed2.value as AutoSchema;
+  console.warn(parsed_ok);
 }
