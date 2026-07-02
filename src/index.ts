@@ -1,4 +1,5 @@
 export * from "./array";
+export * from "./parse";
 export * from "./bit";
 export * from "./async";
 export * from "./debounce";
