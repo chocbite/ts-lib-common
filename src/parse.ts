@@ -31,10 +31,10 @@ type ResolveStringTuple<
 
 type ResolveSpec<T> = T extends string
   ? ParseTypeString<T>
-  : T extends readonly [0, infer TypeStr extends string]
-    ? ParseTypeString<TypeStr>[]
-    : T extends readonly [infer N extends number, infer TypeStr extends string]
-      ? Repeat<ParseTypeString<TypeStr>, N>
+  : T extends readonly [0, infer Sub]
+    ? ResolveSpec<Sub>[]
+    : T extends readonly [infer N extends number, infer Sub]
+      ? Repeat<ResolveSpec<Sub>, N>
       : T extends readonly string[]
         ? ResolveStringTuple<T>
         : T extends object
@@ -47,7 +47,8 @@ type InferSchema<S> = {
 
 type SchemaSpec =
   | string
-  | readonly (string | number)[]
+  | readonly [number, SchemaSpec]
+  | readonly string[]
   | { readonly [key: string]: SchemaSpec };
 
 export type Parsed<F extends (...args: any[]) => Result<any, any>> =
@@ -80,7 +81,7 @@ function validate(
   if (Array.isArray(spec)) {
     if (typeof spec[0] === "number") {
       const count = spec[0];
-      const type_str = spec[1] as string;
+      const sub_spec = spec[1] as SchemaSpec;
 
       if (!Array.isArray(value)) {
         return `Failed to parse due to member ${path} being wrong type (expected array)`;
@@ -88,7 +89,7 @@ function validate(
 
       if (count === 0) {
         for (let i = 0; i < value.length; i++) {
-          const error = validate(value[i], type_str, `${path}[${i}]`);
+          const error = validate(value[i], sub_spec, `${path}[${i}]`);
           if (error) return error;
         }
         return null;
@@ -98,7 +99,7 @@ function validate(
         return `Failed to parse due to member ${path} having wrong length (expected ${count}, got ${value.length})`;
       }
       for (let i = 0; i < count; i++) {
-        const error = validate(value[i], type_str, `${path}[${i}]`);
+        const error = validate(value[i], sub_spec, `${path}[${i}]`);
         if (error) return error;
       }
       return null;
