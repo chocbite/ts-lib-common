@@ -21,7 +21,7 @@ import { make_parser } from "./parse";
 // }
 
 const parser = make_parser({
-  foo: "n",
+  foo: "?n",
   bar: "sb",
   baz: {
     bln: "nb",
@@ -32,7 +32,7 @@ const parser = make_parser({
   field_d: [3, "s"],
   field_e: [5, ["s", "b"]],
   field_f: [5, { a: "n", b: "s" }],
-  field_g: [5, [4, "s"]],
+  field_g: ["?", [5, [4, "s"]]],
 });
 
 const parsed = parser({ foo: 42, bar: "hello", baz: true });

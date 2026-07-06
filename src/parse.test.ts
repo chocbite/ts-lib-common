@@ -170,6 +170,83 @@ describe("make_parser", () => {
     });
   });
 
+  describe("optional fields", () => {
+    describe("optional primitives", () => {
+      const parse = make_parser({ name: "s", age: "?n" });
+
+      it("should accept when optional field is present with correct type", () => {
+        const result = parse({ name: "Alice", age: 30 });
+        expect(result.ok).toBe(true);
+        if (result.ok) expect(result.value).toEqual({ name: "Alice", age: 30 });
+      });
+
+      it("should accept when optional field is undefined", () => {
+        const result = parse({ name: "Alice", age: undefined });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should accept when optional field is missing", () => {
+        const result = parse({ name: "Alice" });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should accept when optional field is null", () => {
+        const result = parse({ name: "Alice", age: null });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should reject when optional field has wrong type", () => {
+        const result = parse({ name: "Alice", age: "thirty" });
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.error).toContain("age");
+      });
+    });
+
+    describe("optional arrays", () => {
+      const parse = make_parser({ name: "s", scores: ["?", [0, "n"]] as const });
+
+      it("should accept when optional array is present", () => {
+        const result = parse({ name: "Alice", scores: [1, 2, 3] });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should accept when optional array is missing", () => {
+        const result = parse({ name: "Alice" });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should accept when optional array is null", () => {
+        const result = parse({ name: "Alice", scores: null });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should reject when optional array has wrong element types", () => {
+        const result = parse({ name: "Alice", scores: [1, "two", 3] });
+        expect(result.ok).toBe(false);
+      });
+    });
+
+    describe("optional objects", () => {
+      const parse = make_parser({ name: "s", addr: ["?", { street: "s", zip: "n" }] as const });
+
+      it("should accept when optional object is present", () => {
+        const result = parse({ name: "Alice", addr: { street: "Main St", zip: 12345 } });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should accept when optional object is missing", () => {
+        const result = parse({ name: "Alice" });
+        expect(result.ok).toBe(true);
+      });
+
+      it("should reject when optional object has wrong field types", () => {
+        const result = parse({ name: "Alice", addr: { street: "Main St", zip: "bad" } });
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.error).toContain("addr.zip");
+      });
+    });
+  });
+
   describe("complex schema", () => {
     const parse = make_parser({
       foo: "n",

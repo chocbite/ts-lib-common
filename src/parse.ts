@@ -7,11 +7,13 @@ type CharMap = {
   b: boolean;
 };
 
-type ParseTypeString<S extends string> = S extends `${infer C}${infer Rest}`
-  ? C extends keyof CharMap
-    ? CharMap[C] | ParseTypeString<Rest>
-    : never
-  : never;
+type ParseTypeString<S extends string> = S extends `?${infer Rest}`
+  ? ParseTypeString<Rest> | undefined
+  : S extends `${infer C}${infer Rest}`
+    ? C extends keyof CharMap
+      ? CharMap[C] | ParseTypeString<Rest>
+      : never
+    : never;
 
 type Repeat<
   T,
@@ -31,15 +33,17 @@ type ResolveStringTuple<
 
 type ResolveSpec<T> = T extends string
   ? ParseTypeString<T>
-  : T extends readonly [0, infer Sub]
-    ? ResolveSpec<Sub>[]
-    : T extends readonly [infer N extends number, infer Sub]
-      ? Repeat<ResolveSpec<Sub>, N>
-      : T extends readonly string[]
-        ? ResolveStringTuple<T>
-        : T extends object
-          ? { -readonly [K in keyof T]: ResolveSpec<T[K]> }
-          : never;
+  : T extends readonly ["?", infer Sub]
+    ? ResolveSpec<Sub> | undefined
+    : T extends readonly [0, infer Sub]
+      ? ResolveSpec<Sub>[]
+      : T extends readonly [infer N extends number, infer Sub]
+        ? Repeat<ResolveSpec<Sub>, N>
+        : T extends readonly string[]
+          ? ResolveStringTuple<T>
+          : T extends object
+            ? { -readonly [K in keyof T]: ResolveSpec<T[K]> }
+            : never;
 
 type InferSchema<S> = {
   -readonly [K in keyof S]: ResolveSpec<S[K]>;
@@ -47,6 +51,7 @@ type InferSchema<S> = {
 
 type SchemaSpec =
   | string
+  | readonly ["?", SchemaSpec]
   | readonly [number, SchemaSpec]
   | readonly string[]
   | { readonly [key: string]: SchemaSpec };
@@ -66,12 +71,17 @@ function validate(
   path: string,
 ): string | null {
   if (typeof spec === "string") {
-    for (const char of spec) {
+    let type_spec = spec;
+    if (type_spec.startsWith("?")) {
+      if (value === undefined || value === null) return null;
+      type_spec = type_spec.slice(1);
+    }
+    for (const char of type_spec) {
       if (char === "n" && typeof value === "number") return null;
       if (char === "s" && typeof value === "string") return null;
       if (char === "b" && typeof value === "boolean") return null;
     }
-    const expected = [...spec]
+    const expected = [...type_spec]
       .map((c) => char_display[c])
       .filter(Boolean)
       .join(" or ");
@@ -79,6 +89,11 @@ function validate(
   }
 
   if (Array.isArray(spec)) {
+    if (spec[0] === "?") {
+      if (value === undefined || value === null) return null;
+      return validate(value, spec[1] as SchemaSpec, path);
+    }
+
     if (typeof spec[0] === "number") {
       const count = spec[0];
       const sub_spec = spec[1] as SchemaSpec;
