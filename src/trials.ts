@@ -36,6 +36,7 @@ const parser = make_parser({
   field_e: [5, ["s", "b"]],
   field_f: [5, { a: "n", b: "s" }],
   field_g: ["?", [5, [4, "s"]]],
+  omni: ["?nbl", [5, [4, "s"]], { a: "n", b: "s" }],
 });
 
 const parsed = parser({ foo: 42, bar: "hello", baz: true });
@@ -77,6 +78,10 @@ const parsed2 = parser({
     ["m", "n", "o", "p"],
     ["q", "r", "s", "t"],
   ],
+  omni: {
+    a: 42,
+    b: "hello",
+  },
 });
 
 console.warn(parsed2);

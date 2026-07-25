@@ -254,6 +254,27 @@ describe("make_parser", () => {
     });
   });
 
+  describe("schema unions", () => {
+    const parse = make_parser({
+      val: ["?nsbl", [5, "b"], { a: "n" }],
+    });
+
+    it("should accept any primitive, array, or object union member", () => {
+      expect(parse({ val: undefined }).ok).toBe(true);
+      expect(parse({ val: 42 }).ok).toBe(true);
+      expect(parse({ val: "hello" }).ok).toBe(true);
+      expect(parse({ val: true }).ok).toBe(true);
+      expect(parse({ val: null }).ok).toBe(true);
+      expect(parse({ val: [true, false, true, false, true] }).ok).toBe(true);
+      expect(parse({ val: { a: 42 } }).ok).toBe(true);
+    });
+
+    it("should reject values outside every union member", () => {
+      expect(parse({ val: [true, false] }).ok).toBe(false);
+      expect(parse({ val: { a: "wrong" } }).ok).toBe(false);
+    });
+  });
+
   describe("complex schema", () => {
     const parse = make_parser({
       foo: "n",

@@ -54,22 +54,24 @@ type ResolveSpec<T> = T extends string
       ? ResolveSpec<Sub>[]
       : T extends readonly [infer N extends number, infer Sub]
         ? Repeat<ResolveSpec<Sub>, N>
-        : T extends readonly string[]
+        : T extends readonly PrimitiveSpec[]
           ? ResolveStringTuple<T>
-          : T extends object
-            ? { -readonly [K in keyof T]: ResolveSpec<T[K]> }
-            : never;
+          : T extends readonly SchemaQNSBL[]
+            ? ResolveSpec<T[number]>
+            : T extends object
+              ? { -readonly [K in keyof T]: ResolveSpec<T[K]> }
+              : never;
 
 type InferSchema<S> = {
   -readonly [K in keyof S]: ResolveSpec<S[K]>;
 };
 
-type SchemaSpec =
+type SchemaQNSBL =
   | PrimitiveSpec
-  | readonly ["?", SchemaSpec]
-  | readonly [number, SchemaSpec]
-  | readonly SchemaSpec[]
-  | { readonly [key: string]: SchemaSpec };
+  | readonly ["?", SchemaQNSBL]
+  | readonly [number, SchemaQNSBL]
+  | readonly SchemaQNSBL[]
+  | { readonly [key: string]: SchemaQNSBL };
 
 export type Parsed<F extends (...args: any[]) => Result<any, any>> =
   ReturnType<F> extends ResultOk<infer T> | infer _ ? T : never;
@@ -83,7 +85,7 @@ const char_display: Record<string, string> = {
 
 function validate(
   value: unknown,
-  spec: SchemaSpec,
+  spec: SchemaQNSBL,
   path: string,
 ): string | null {
   if (typeof spec === "string") {
@@ -108,12 +110,12 @@ function validate(
   if (Array.isArray(spec)) {
     if (spec[0] === "?") {
       if (value === undefined) return null;
-      return validate(value, spec[1] as SchemaSpec, path);
+      return validate(value, spec[1] as SchemaQNSBL, path);
     }
 
     if (typeof spec[0] === "number") {
       const count = spec[0];
-      const sub_spec = spec[1] as SchemaSpec;
+      const sub_spec = spec[1] as SchemaQNSBL;
 
       if (!Array.isArray(value)) {
         return `Failed to parse due to member ${path} being wrong type (expected array)`;
@@ -137,6 +139,13 @@ function validate(
       return null;
     }
 
+    if (!spec.every((sub_spec) => typeof sub_spec === "string")) {
+      for (const sub_spec of spec) {
+        if (!validate(value, sub_spec as SchemaQNSBL, path)) return null;
+      }
+      return `Failed to parse due to member ${path} not matching any union type`;
+    }
+
     if (!Array.isArray(value)) {
       return `Failed to parse due to member ${path} being wrong type (expected array)`;
     }
@@ -144,7 +153,7 @@ function validate(
       return `Failed to parse due to member ${path} having wrong length (expected ${spec.length}, got ${value.length})`;
     }
     for (let i = 0; i < spec.length; i++) {
-      const error = validate(value[i], spec[i] as SchemaSpec, `${path}[${i}]`);
+      const error = validate(value[i], spec[i] as SchemaQNSBL, `${path}[${i}]`);
       if (error) return error;
     }
     return null;
@@ -155,7 +164,7 @@ function validate(
   }
   const record = value as Record<string, unknown>;
   for (const [key, sub_spec] of Object.entries(
-    spec as Record<string, SchemaSpec>,
+    spec as Record<string, SchemaQNSBL>,
   )) {
     const error = validate(record[key], sub_spec, `${path}.${key}`);
     if (error) return error;
@@ -174,6 +183,7 @@ function validate(
  * - String tuple: ["ns", "b"] — tuple with per-position types
  * - Repeated tuple: [3, "s"] — fixed-length tuple of N elements of the same type
  * - Variable-length array: [0, "n"] — array of any length with uniform element type
+ * - Schema union: ["?nsl", [5, "b"], { a: "n" }] — accepts any listed schema
  *
  * @example
  * const parse_user = make_parser({
@@ -190,7 +200,7 @@ function validate(
  *
  * @param schema - Schema object defining the expected shape
  * @returns A parser that accepts unknown input (object or JSON string) and returns Result<T, string>*/
-export function make_parser<const S extends Record<string, SchemaSpec>>(
+export function make_parser<const S extends Record<string, SchemaQNSBL>>(
   schema: S,
 ): (input: unknown) => Result<InferSchema<S>, string> {
   return (input: unknown): Result<InferSchema<S>, string> => {
