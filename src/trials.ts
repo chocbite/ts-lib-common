@@ -1,6 +1,24 @@
 import type { Parsed } from "./parse";
 import { make_parser } from "./parse";
 
+const internal_parser = make_parser({
+  bln: "b",
+  num: "n",
+});
+
+class ParsedClass {
+  constructor(
+    public bln: boolean,
+    public num: number,
+  ) {}
+}
+
+const class_parser = (data: unknown) => {
+  const parsed = internal_parser(data);
+  if (!parsed.ok) return parsed;
+  return new ParsedClass(parsed.value.bln, parsed.value.num);
+};
+
 const part_parser = make_parser([
   0,
   {
@@ -16,6 +34,7 @@ const parser = make_parser({
   bar: "sb",
   bak: "l",
   part: part_parser,
+  class: class_parser,
   baz: {
     bln: "nb",
     str: "sssssiows",
@@ -53,6 +72,10 @@ const parsed2 = parser({
       num: 123,
     },
   ],
+  class: {
+    bln: true,
+    num: 123,
+  },
   field_e: [
     ["x", true],
     ["y", false],

@@ -82,8 +82,17 @@ type SchemaQNSBL =
   | readonly SchemaQNSBL[]
   | { readonly [key: string]: SchemaQNSBL };
 
-export type Parsed<F extends (...args: any[]) => unknown> =
-  ReturnType<F> extends ResultOk<infer T> | infer _ ? T : never;
+type ParsedReturn<T> = T extends ResultOk<infer Value>
+  ? Value
+  : T extends { ok: boolean }
+    ? never
+    : T;
+
+export type Parsed<F extends (...args: any[]) => unknown> = ParsedReturn<
+  ReturnType<F>
+>;
+
+type Transform = { transformed: unknown };
 
 const char_display: Record<string, string> = {
   n: "number",
@@ -96,12 +105,17 @@ function validate(
   value: unknown,
   spec: SchemaQNSBL,
   path: string,
-): string | null {
+): string | null | Transform {
   if (typeof spec === "function") {
-    const result = spec(value) as Result<unknown, unknown>;
-    return result.ok
-      ? null
-      : `Failed to parse due to member ${path}: Subparser Failed to parse: "${String(result.error)}"`;
+    const result = spec(value);
+    if (typeof result === "object" && result !== null && "ok" in result) {
+      const parsed = result as Result<unknown, unknown>;
+      if (!parsed.ok) {
+        return `Failed to parse due to member ${path}: Subparser Failed to parse: "${String(parsed.error)}"`;
+      }
+      return parsed.value === value ? null : { transformed: parsed.value };
+    }
+    return result === value ? null : { transformed: result };
   }
 
   if (typeof spec === "string") {
@@ -126,7 +140,7 @@ function validate(
   if (Array.isArray(spec)) {
     if (spec[0] === "?") {
       if (value === undefined) return null;
-      return validate(value, spec[1] as SchemaQNSBL, path);
+        return validate(value, spec[1] as SchemaQNSBL, path);
     }
 
     if (typeof spec[0] === "number") {
@@ -139,8 +153,9 @@ function validate(
 
       if (count === 0) {
         for (let i = 0; i < value.length; i++) {
-          const error = validate(value[i], sub_spec, `${path}[${i}]`);
-          if (error) return error;
+          const result = validate(value[i], sub_spec, `${path}[${i}]`);
+          if (typeof result === "string") return result;
+          if (result) value[i] = result.transformed;
         }
         return null;
       }
@@ -149,15 +164,17 @@ function validate(
         return `Failed to parse due to member ${path} having wrong length (expected ${count}, got ${value.length})`;
       }
       for (let i = 0; i < count; i++) {
-        const error = validate(value[i], sub_spec, `${path}[${i}]`);
-        if (error) return error;
+        const result = validate(value[i], sub_spec, `${path}[${i}]`);
+        if (typeof result === "string") return result;
+        if (result) value[i] = result.transformed;
       }
       return null;
     }
 
     if (!spec.every((sub_spec) => typeof sub_spec === "string")) {
       for (const sub_spec of spec) {
-        if (!validate(value, sub_spec as SchemaQNSBL, path)) return null;
+        const result = validate(value, sub_spec as SchemaQNSBL, path);
+        if (typeof result !== "string") return result;
       }
       return `Failed to parse due to member ${path} not matching any union type`;
     }
@@ -169,8 +186,9 @@ function validate(
       return `Failed to parse due to member ${path} having wrong length (expected ${spec.length}, got ${value.length})`;
     }
     for (let i = 0; i < spec.length; i++) {
-      const error = validate(value[i], spec[i] as SchemaQNSBL, `${path}[${i}]`);
-      if (error) return error;
+      const result = validate(value[i], spec[i] as SchemaQNSBL, `${path}[${i}]`);
+      if (typeof result === "string") return result;
+      if (result) value[i] = result.transformed;
     }
     return null;
   }
@@ -182,8 +200,9 @@ function validate(
   for (const [key, sub_spec] of Object.entries(
     spec as Record<string, SchemaQNSBL>,
   )) {
-    const error = validate(record[key], sub_spec, `${path}.${key}`);
-    if (error) return error;
+    const result = validate(record[key], sub_spec, `${path}.${key}`);
+    if (typeof result === "string") return result;
+    if (result) record[key] = result.transformed;
   }
   return null;
 }
@@ -249,12 +268,14 @@ export function make_parser(
       for (const [key, spec] of Object.entries(
         schema as Record<string, SchemaQNSBL>,
       )) {
-        const error = validate(record[key], spec, key);
-        if (error) return err(error);
+        const result = validate(record[key], spec, key);
+        if (typeof result === "string") return err(result);
+        if (result) record[key] = result.transformed;
       }
     } else {
-      const error = validate(obj, schema as SchemaQNSBL, "input");
-      if (error) return err(error);
+      const result = validate(obj, schema as SchemaQNSBL, "input");
+      if (typeof result === "string") return err(result);
+      if (result) obj = result.transformed;
     }
 
     return ok(obj);

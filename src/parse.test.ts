@@ -136,6 +136,28 @@ describe("make_parser", () => {
       expect(parse_union({ part: "one" }).ok).toBe(true);
       expect(parse_union({ part: { id: "one", label: "one" } }).ok).toBe(false);
     });
+
+    it("should retain a class returned by a nested parser", () => {
+      class Part {
+        constructor(
+          public id: number,
+          public label: string,
+        ) {}
+      }
+
+      const parse_class = (input: unknown) => {
+        const result = parse_part(input);
+        return result.ok ? new Part(result.value.id, result.value.label) : result;
+      };
+      const parse = make_parser({ part: parse_class });
+
+      const result = parse({ part: { id: 1, label: "one" } });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.part).toBeInstanceOf(Part);
+        expectTypeOf(result.value.part).toEqualTypeOf<Part>();
+      }
+    });
   });
 
   describe("string tuples", () => {
