@@ -1,7 +1,39 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { make_parser } from "./parse";
+import { make_parser, type Parsed } from "./parse";
 
 describe("make_parser", () => {
+  describe("Parsed", () => {
+    it("should infer successful values from parser results", () => {
+      const parse = make_parser({ id: "n", label: "s" });
+
+      expectTypeOf<Parsed<typeof parse>>().toEqualTypeOf<{
+        id: number;
+        label: string;
+      }>();
+    });
+
+    it("should infer root array parser values", () => {
+      const parse = make_parser([0, { id: "n" }]);
+
+      expectTypeOf<Parsed<typeof parse>>().toEqualTypeOf<{ id: number }[]>();
+    });
+
+    it("should infer transformed values from class subparsers", () => {
+      const internal = make_parser({ id: "n" });
+
+      class Item {
+        constructor(public id: number) {}
+      }
+
+      const parse_item = (input: unknown) => {
+        const result = internal(input);
+        return result.ok ? new Item(result.value.id) : result;
+      };
+
+      expectTypeOf<Parsed<typeof parse_item>>().toEqualTypeOf<Item>();
+    });
+  });
+
   describe("type strings", () => {
     it("should parse single-char types", () => {
       const parse = make_parser({ n: "n", s: "s", b: "b" });

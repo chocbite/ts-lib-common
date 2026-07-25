@@ -28,6 +28,8 @@ const part_parser = make_parser([
 ]);
 
 // @ts-expect-error Type characters must be unique and in n, s, b, l order.
+make_parser({ invalid: "sssssiows" });
+
 const parser = make_parser({
   fom: "b",
   foo: "?n",
@@ -37,7 +39,7 @@ const parser = make_parser({
   class: class_parser,
   baz: {
     bln: "nb",
-    str: "sssssiows",
+    str: "s",
     num: "ns",
   },
   field_c: ["nb", "s"],
@@ -51,6 +53,30 @@ const parser = make_parser({
 const parsed = parser({ foo: 42, bar: "hello", baz: true });
 
 type AutoSchema = Parsed<typeof parser>;
+
+type Equal<Left, Right> =
+  (<T>() => T extends Left ? 1 : 2) extends <T>() => T extends Right ? 1 : 2
+    ? true
+    : false;
+type Assert<T extends true> = T;
+
+const auto_schema_is_correct = {
+  fom: true as Assert<Equal<AutoSchema["fom"], boolean>>,
+  foo: true as Assert<Equal<AutoSchema["foo"], number | undefined>>,
+  bar: true as Assert<Equal<AutoSchema["bar"], string | boolean>>,
+  bak: true as Assert<Equal<AutoSchema["bak"], null>>,
+  part: true as Assert<
+    Equal<AutoSchema["part"], { bln: number | boolean; num: number | string }[]>
+  >,
+  class: true as Assert<Equal<AutoSchema["class"], ParsedClass>>,
+  baz: true as Assert<
+    Equal<
+      AutoSchema["baz"],
+      { bln: number | boolean; str: string; num: number | string }
+    >
+  >,
+};
+void auto_schema_is_correct;
 
 console.warn(parsed);
 if (parsed.ok) {
