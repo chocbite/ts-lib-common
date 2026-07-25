@@ -21,12 +21,15 @@ import { make_parser } from "./parse";
 // }
 
 const parser = make_parser({
+  fom: "b",
   foo: "?n",
   bar: "sb",
+  bak: "l",
+  // @ts-expect-error Type characters must be unique and in n, s, b, l order.
   baz: {
     bln: "nb",
-    str: "s",
-    num: "n",
+    str: "sssssiows",
+    num: "ns",
   },
   field_c: ["nb", "s"],
   field_d: [3, "s"],
@@ -46,8 +49,10 @@ if (parsed.ok) {
 }
 
 const parsed2 = parser({
+  fom: false,
   foo: 42,
   bar: "hello",
+  bak: null,
   baz: { bln: true, str: "test", num: 123 },
   field_c: [false, "yes"],
   field_d: ["a", "b", "c"],

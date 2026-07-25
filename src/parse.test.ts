@@ -17,12 +17,19 @@ describe("make_parser", () => {
       expect(parse({ val: true }).ok).toBe(false);
     });
 
-    it("should parse triple union type strings", () => {
-      const parse = make_parser({ val: "nsb" });
+    it("should parse union type strings containing null", () => {
+      const parse = make_parser({ val: "nsbl" });
       expect(parse({ val: 42 }).ok).toBe(true);
       expect(parse({ val: "hi" }).ok).toBe(true);
       expect(parse({ val: true }).ok).toBe(true);
-      expect(parse({ val: null }).ok).toBe(false);
+      expect(parse({ val: null }).ok).toBe(true);
+    });
+
+    it("should parse null-only type strings", () => {
+      const parse = make_parser({ val: "l" });
+      expect(parse({ val: null }).ok).toBe(true);
+      expect(parse({ val: undefined }).ok).toBe(false);
+      expect(parse({ val: 42 }).ok).toBe(false);
     });
 
     it("should reject wrong types with descriptive error", () => {
@@ -190,9 +197,9 @@ describe("make_parser", () => {
         expect(result.ok).toBe(true);
       });
 
-      it("should accept when optional field is null", () => {
+      it("should reject null without the null type character", () => {
         const result = parse({ name: "Alice", age: null });
-        expect(result.ok).toBe(true);
+        expect(result.ok).toBe(false);
       });
 
       it("should reject when optional field has wrong type", () => {
@@ -215,9 +222,9 @@ describe("make_parser", () => {
         expect(result.ok).toBe(true);
       });
 
-      it("should accept when optional array is null", () => {
+      it("should reject null without the null type character", () => {
         const result = parse({ name: "Alice", scores: null });
-        expect(result.ok).toBe(true);
+        expect(result.ok).toBe(false);
       });
 
       it("should reject when optional array has wrong element types", () => {

@@ -5,7 +5,22 @@ type CharMap = {
   n: number;
   s: string;
   b: boolean;
+  l: null;
 };
+
+type TypeCharOrder = ["n", "s", "b", "l"];
+
+type OrderedTypeString<Chars extends readonly string[]> =
+  Chars extends readonly [
+    infer First extends string,
+    ...infer Rest extends readonly string[],
+  ]
+    ? First | `${First}${OrderedTypeString<Rest>}` | OrderedTypeString<Rest>
+    : never;
+
+type TypeString = OrderedTypeString<TypeCharOrder>;
+type OptionalTypeString = `?${TypeString}`;
+type PrimitiveSpec = TypeString | OptionalTypeString;
 
 type ParseTypeString<S extends string> = S extends `?${infer Rest}`
   ? ParseTypeString<Rest> | undefined
@@ -50,10 +65,10 @@ type InferSchema<S> = {
 };
 
 type SchemaSpec =
-  | string
+  | PrimitiveSpec
   | readonly ["?", SchemaSpec]
   | readonly [number, SchemaSpec]
-  | readonly string[]
+  | readonly SchemaSpec[]
   | { readonly [key: string]: SchemaSpec };
 
 export type Parsed<F extends (...args: any[]) => Result<any, any>> =
@@ -63,6 +78,7 @@ const char_display: Record<string, string> = {
   n: "number",
   s: "string",
   b: "boolean",
+  l: "null",
 };
 
 function validate(
@@ -71,15 +87,16 @@ function validate(
   path: string,
 ): string | null {
   if (typeof spec === "string") {
-    let type_spec = spec;
+    let type_spec: string = spec;
     if (type_spec.startsWith("?")) {
-      if (value === undefined || value === null) return null;
+      if (value === undefined) return null;
       type_spec = type_spec.slice(1);
     }
     for (const char of type_spec) {
       if (char === "n" && typeof value === "number") return null;
       if (char === "s" && typeof value === "string") return null;
       if (char === "b" && typeof value === "boolean") return null;
+      if (char === "l" && value === null) return null;
     }
     const expected = [...type_spec]
       .map((c) => char_display[c])
@@ -90,7 +107,7 @@ function validate(
 
   if (Array.isArray(spec)) {
     if (spec[0] === "?") {
-      if (value === undefined || value === null) return null;
+      if (value === undefined) return null;
       return validate(value, spec[1] as SchemaSpec, path);
     }
 
@@ -127,7 +144,7 @@ function validate(
       return `Failed to parse due to member ${path} having wrong length (expected ${spec.length}, got ${value.length})`;
     }
     for (let i = 0; i < spec.length; i++) {
-      const error = validate(value[i], spec[i] as string, `${path}[${i}]`);
+      const error = validate(value[i], spec[i] as SchemaSpec, `${path}[${i}]`);
       if (error) return error;
     }
     return null;
@@ -148,10 +165,11 @@ function validate(
 
 /** Creates a parser function from a schema definition.
  *
- * Type chars: "n" = number, "s" = string, "b" = boolean. Concatenate for unions ("sb" = string | boolean).
+ * Type chars: "n" = number, "s" = string, "b" = boolean, "l" = null. Concatenate for unions ("sbl" = string | boolean | null).
  *
  * Schema spec values:
- * - Type string: "n", "sb", "nsb" — primitive or union of primitives
+ * - Type string: "n", "sbl", "nsb" — primitive or union of primitive values
+ * - Optional spec: prefix a type string with "?", or use ["?", spec] — permits a missing or undefined value
  * - Nested object: { key: spec } — recursively validated object
  * - String tuple: ["ns", "b"] — tuple with per-position types
  * - Repeated tuple: [3, "s"] — fixed-length tuple of N elements of the same type
