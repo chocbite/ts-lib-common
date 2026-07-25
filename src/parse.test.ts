@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { make_parser } from "./parse";
 
 describe("make_parser", () => {
@@ -75,6 +75,66 @@ describe("make_parser", () => {
       const result = parse({ meta: "not an object" });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.error).toContain("meta");
+    });
+  });
+
+  describe("nested parsers", () => {
+    const parse_part = make_parser({ id: "n", label: "s" });
+    const parse = make_parser({ part: parse_part });
+
+    it("should infer and accept a nested parser's output", () => {
+      const result = parse({ part: { id: 1, label: "one" } });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.part).toEqual({ id: 1, label: "one" });
+        expectTypeOf(result.value.part).toEqualTypeOf<{ id: number; label: string }>();
+      }
+    });
+
+    it("should reject values rejected by the nested parser", () => {
+      const result = parse({ part: { id: "one", label: "one" } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe(
+          'Failed to parse due to member part: Subparser Failed to parse: "Failed to parse due to member id being wrong type (expected number)"',
+        );
+      }
+    });
+
+    it("should reject a missing required nested parser value", () => {
+      const result = parse({});
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toContain("part");
+    });
+
+    it("should support optional nested parsers", () => {
+      const parse_optional = make_parser({ part: ["?", parse_part] as const });
+
+      const missing = parse_optional({});
+      expect(missing.ok).toBe(true);
+      if (missing.ok) {
+        expectTypeOf(missing.value.part).toEqualTypeOf<
+          { id: number; label: string } | undefined
+        >();
+      }
+
+      expect(parse_optional({ part: { id: 1, label: "one" } }).ok).toBe(true);
+      expect(parse_optional({ part: { id: "one", label: "one" } }).ok).toBe(false);
+    });
+
+    it("should support nested parsers in schema unions", () => {
+      const parse_union = make_parser({ part: [parse_part, "s"] as const });
+
+      const nested = parse_union({ part: { id: 1, label: "one" } });
+      expect(nested.ok).toBe(true);
+      if (nested.ok) {
+        expectTypeOf(nested.value.part).toEqualTypeOf<
+          { id: number; label: string } | string
+        >();
+      }
+
+      expect(parse_union({ part: "one" }).ok).toBe(true);
+      expect(parse_union({ part: { id: "one", label: "one" } }).ok).toBe(false);
     });
   });
 

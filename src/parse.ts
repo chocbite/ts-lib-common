@@ -21,6 +21,7 @@ type OrderedTypeString<Chars extends readonly string[]> =
 type TypeString = OrderedTypeString<TypeCharOrder>;
 type OptionalTypeString = `?${TypeString}`;
 type PrimitiveSpec = TypeString | OptionalTypeString;
+type Parser = (input: unknown) => Result<unknown, unknown>;
 
 type ParseTypeString<S extends string> = S extends `?${infer Rest}`
   ? ParseTypeString<Rest> | undefined
@@ -48,6 +49,8 @@ type ResolveStringTuple<
 
 type ResolveSpec<T> = T extends string
   ? ParseTypeString<T>
+  : T extends Parser
+    ? Parsed<T>
   : T extends readonly ["?", infer Sub]
     ? ResolveSpec<Sub> | undefined
     : T extends readonly [0, infer Sub]
@@ -68,6 +71,7 @@ type InferSchema<S> = {
 
 type SchemaQNSBL =
   | PrimitiveSpec
+  | Parser
   | readonly ["?", SchemaQNSBL]
   | readonly [number, SchemaQNSBL]
   | readonly SchemaQNSBL[]
@@ -88,6 +92,13 @@ function validate(
   spec: SchemaQNSBL,
   path: string,
 ): string | null {
+  if (typeof spec === "function") {
+    const result = spec(value);
+    return result.ok
+      ? null
+      : `Failed to parse due to member ${path}: Subparser Failed to parse: "${String(result.error)}"`;
+  }
+
   if (typeof spec === "string") {
     let type_spec: string = spec;
     if (type_spec.startsWith("?")) {
@@ -180,6 +191,7 @@ function validate(
  * - Type string: "n", "sbl", "nsb" — primitive or union of primitive values
  * - Optional spec: prefix a type string with "?", or use ["?", spec] — permits a missing or undefined value
  * - Nested object: { key: spec } — recursively validated object
+ * - Nested parser: another parser created by `make_parser`
  * - String tuple: ["ns", "b"] — tuple with per-position types
  * - Repeated tuple: [3, "s"] — fixed-length tuple of N elements of the same type
  * - Variable-length array: [0, "n"] — array of any length with uniform element type
@@ -193,6 +205,7 @@ function validate(
  *   role: "ns",
  *   scores: [0, "n"],
  *   address: { street: "s", zip: "n" },
+ *   settings: make_parser({ theme: "s" }),
  * });
  *
  * type User = Parsed<typeof parse_user>;

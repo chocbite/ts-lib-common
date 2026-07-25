@@ -1,30 +1,19 @@
 import type { Parsed } from "./parse";
 import { make_parser } from "./parse";
 
-// interface ManualSchema {
-//   foo: number;
-//   bar: string | boolean;
-//   baz: {
-//     bln: number | boolean;
-//     str: string;
-//     num: number;
-//   };
-//   field_c: [number | boolean, string];
-//   field_d: [string, string, string];
-//   field_e: [
-//     [string, boolean],
-//     [string, boolean],
-//     [string, boolean],
-//     [string, boolean],
-//     [string, boolean],
-//   ];
-// }
+const part_parser = make_parser({
+  baz: {
+    bln: "nb",
+    num: "ns",
+  },
+});
 
 const parser = make_parser({
   fom: "b",
   foo: "?n",
   bar: "sb",
   bak: "l",
+  part: part_parser,
   // @ts-expect-error Type characters must be unique and in n, s, b, l order.
   baz: {
     bln: "nb",
