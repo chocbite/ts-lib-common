@@ -1,9 +1,10 @@
 {
   "name": "@chocbite/ts-lib-common",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Common utilities for TypeScript",
   "author": "chocolateandmilkwin",
   "license": "MIT",
+  "repository": "https://github.com/chocbite/ts-lib-common.git",
   "type": "module",
   "private": false,
   "module": "./dist/index.mjs",
