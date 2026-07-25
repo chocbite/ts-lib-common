@@ -33,4 +33,19 @@ describe("Any Equals", async () => {
     expect(object_equals_deep(test1, test4)).toEqual(false);
     expect(object_equals_deep(test1, test5)).toEqual(false);
   });
+
+  it("compares null object properties", async () => {
+    expect(
+      object_equals_deep(
+        { value: null, nested: { value: null } },
+        { value: null, nested: { value: null } }
+      )
+    ).toEqual(true);
+    expect(
+      object_equals_deep(
+        { value: null },
+        { value: { nested: true } }
+      )
+    ).toEqual(false);
+  });
 });

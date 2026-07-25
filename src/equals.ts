@@ -4,6 +4,7 @@
 export function any_equals_deep(any1: any, any2: any): boolean {
   const type = typeof any1;
   if (type !== typeof any2) return false;
+  if (any1 === null) return any2 === null;
   switch (type) {
     case "object":
       return object_equals_deep(any1 as {}, any2 as {});
