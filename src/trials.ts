@@ -1,20 +1,21 @@
 import type { Parsed } from "./parse";
 import { make_parser } from "./parse";
 
-const part_parser = make_parser({
-  baz: {
+const part_parser = make_parser([
+  0,
+  {
     bln: "nb",
     num: "ns",
   },
-});
+]);
 
+// @ts-expect-error Type characters must be unique and in n, s, b, l order.
 const parser = make_parser({
   fom: "b",
   foo: "?n",
   bar: "sb",
   bak: "l",
   part: part_parser,
-  // @ts-expect-error Type characters must be unique and in n, s, b, l order.
   baz: {
     bln: "nb",
     str: "sssssiows",
@@ -46,6 +47,12 @@ const parsed2 = parser({
   baz: { bln: true, str: "test", num: 123 },
   field_c: [false, "yes"],
   field_d: ["a", "b", "c"],
+  part: [
+    {
+      bln: true,
+      num: 123,
+    },
+  ],
   field_e: [
     ["x", true],
     ["y", false],

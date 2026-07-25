@@ -206,6 +206,33 @@ describe("make_parser", () => {
     });
   });
 
+  describe("array root schemas", () => {
+    const parse = make_parser([0, { bln: "nb", num: "ns" }]);
+
+    it("should infer and accept arrays at the root", () => {
+      const result = parse([
+        { bln: true, num: 1 },
+        { bln: 2, num: "two" },
+      ]);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toEqual([
+          { bln: true, num: 1 },
+          { bln: 2, num: "two" },
+        ]);
+        expectTypeOf(result.value).toEqualTypeOf<
+          { bln: number | boolean; num: number | string }[]
+        >();
+      }
+    });
+
+    it("should reject invalid root array elements", () => {
+      const result = parse([{ bln: "wrong", num: 1 }]);
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toContain("input[0].bln");
+    });
+  });
+
   describe("json string input", () => {
     const parse = make_parser({ x: "n" });
 

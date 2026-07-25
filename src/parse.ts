@@ -21,7 +21,7 @@ type OrderedTypeString<Chars extends readonly string[]> =
 type TypeString = OrderedTypeString<TypeCharOrder>;
 type OptionalTypeString = `?${TypeString}`;
 type PrimitiveSpec = TypeString | OptionalTypeString;
-type Parser = (input: unknown) => Result<unknown, unknown>;
+type Parser = (input: unknown) => unknown;
 
 type ParseTypeString<S extends string> = S extends `?${infer Rest}`
   ? ParseTypeString<Rest> | undefined
@@ -69,6 +69,11 @@ type InferSchema<S> = {
   -readonly [K in keyof S]: ResolveSpec<S[K]>;
 };
 
+type InferArraySchema<S extends readonly [0, unknown]> =
+  S extends readonly [0, infer Item]
+    ? ResolveSpec<Item>[]
+    : never;
+
 type SchemaQNSBL =
   | PrimitiveSpec
   | Parser
@@ -77,7 +82,7 @@ type SchemaQNSBL =
   | readonly SchemaQNSBL[]
   | { readonly [key: string]: SchemaQNSBL };
 
-export type Parsed<F extends (...args: any[]) => Result<any, any>> =
+export type Parsed<F extends (...args: any[]) => unknown> =
   ReturnType<F> extends ResultOk<infer T> | infer _ ? T : never;
 
 const char_display: Record<string, string> = {
@@ -93,7 +98,7 @@ function validate(
   path: string,
 ): string | null {
   if (typeof spec === "function") {
-    const result = spec(value);
+    const result = spec(value) as Result<unknown, unknown>;
     return result.ok
       ? null
       : `Failed to parse due to member ${path}: Subparser Failed to parse: "${String(result.error)}"`;
@@ -211,12 +216,18 @@ function validate(
  * type User = Parsed<typeof parse_user>;
  * const result = parse_user(input);
  *
- * @param schema - Schema object defining the expected shape
- * @returns A parser that accepts unknown input (object or JSON string) and returns Result<T, string>*/
+ * @param schema - Schema defining the expected root value
+ * @returns A parser that accepts unknown input (or JSON string) and returns Result<T, string>*/
 export function make_parser<const S extends Record<string, SchemaQNSBL>>(
   schema: S,
-): (input: unknown) => Result<InferSchema<S>, string> {
-  return (input: unknown): Result<InferSchema<S>, string> => {
+): (input: unknown) => Result<InferSchema<S>, string>;
+export function make_parser<const S extends readonly [0, unknown]>(
+  schema: S & readonly [0, SchemaQNSBL],
+): (input: unknown) => Result<InferArraySchema<S>, string>;
+export function make_parser(
+  schema: unknown,
+): (input: unknown) => Result<unknown, string> {
+  return (input: unknown): Result<unknown, string> => {
     let obj: unknown;
 
     if (typeof input === "string") {
@@ -229,17 +240,23 @@ export function make_parser<const S extends Record<string, SchemaQNSBL>>(
       obj = input;
     }
 
-    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
-      return err("Failed to parse: input is not an object");
-    }
+    if (!Array.isArray(schema) && typeof schema === "object" && schema !== null) {
+      if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+        return err("Failed to parse: input is not an object");
+      }
 
-    const record = obj as Record<string, unknown>;
-
-    for (const [key, spec] of Object.entries(schema)) {
-      const error = validate(record[key], spec, key);
+      const record = obj as Record<string, unknown>;
+      for (const [key, spec] of Object.entries(
+        schema as Record<string, SchemaQNSBL>,
+      )) {
+        const error = validate(record[key], spec, key);
+        if (error) return err(error);
+      }
+    } else {
+      const error = validate(obj, schema as SchemaQNSBL, "input");
       if (error) return err(error);
     }
 
-    return ok(record as InferSchema<S>);
+    return ok(obj);
   };
 }
