@@ -316,6 +316,32 @@ describe("make_parser", () => {
       expect(parse(42).ok).toBe(false);
       expect(parse(true).ok).toBe(false);
     });
+
+    it("should use a default factory when provided", () => {
+      const parse_with_default = make_parser(
+        { enabled: "b", count: ["?", "n", () => 42] as const },
+        () => ({ enabled: false }),
+      );
+
+      const result = parse_with_default(null);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toEqual({ enabled: false, count: 42 });
+        expectTypeOf(result.value).toEqualTypeOf<{
+          enabled: boolean;
+          count: number;
+        }>();
+      }
+    });
+
+    it("should validate the default factory result", () => {
+      const parse_with_invalid_default = make_parser(
+        { enabled: "b" },
+        () => ({ enabled: "false" }),
+      );
+
+      expect(parse_with_invalid_default(undefined).ok).toBe(false);
+    });
   });
 
   describe("optional fields", () => {

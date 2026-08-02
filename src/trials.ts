@@ -1,10 +1,15 @@
 import type { Parsed } from "./parse";
 import { make_parser } from "./parse";
 
-const internal_parser = make_parser({
-  bln: "b",
-  num: ["?", "n", () => 42],
-});
+const internal_parser = make_parser(
+  {
+    bln: "b",
+    num: ["?", "n", () => 42],
+  },
+  () => ({
+    bln: false,
+  }),
+);
 
 class ParsedClass {
   constructor(

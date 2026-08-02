@@ -246,7 +246,12 @@ function validate(
  * const result = parse_user(input);
  *
  * @param schema - Schema defining the expected root value
+ * @param default_value - Optional factory used when an object schema receives a non-object input
  * @returns A parser that accepts unknown input (or JSON string) and returns Result<T, string>*/
+export function make_parser<const S extends Record<string, SchemaQNSBL>>(
+  schema: S,
+  default_value: () => unknown,
+): (input: unknown) => Result<InferSchema<S>, string>;
 export function make_parser<const S extends Record<string, SchemaQNSBL>>(
   schema: S,
 ): (input: unknown) => Result<InferSchema<S>, string>;
@@ -255,6 +260,7 @@ export function make_parser<const S extends readonly [0, unknown]>(
 ): (input: unknown) => Result<InferArraySchema<S>, string>;
 export function make_parser(
   schema: unknown,
+  default_value?: () => unknown,
 ): (input: unknown) => Result<unknown, string> {
   return (input: unknown): Result<unknown, string> => {
     let obj: unknown;
@@ -271,7 +277,8 @@ export function make_parser(
 
     if (!Array.isArray(schema) && typeof schema === "object" && schema !== null) {
       if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
-        return err("Failed to parse: input is not an object");
+        if (!default_value) return err("Failed to parse: input is not an object");
+        obj = default_value();
       }
 
       const record = obj as Record<string, unknown>;
