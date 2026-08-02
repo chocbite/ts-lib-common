@@ -319,6 +319,36 @@ describe("make_parser", () => {
   });
 
   describe("optional fields", () => {
+    describe("optional defaults", () => {
+      const parse = make_parser({ count: ["?", "n", () => 0] as const });
+
+      it("should supply the default when the field is missing", () => {
+        const result = parse({});
+        expect(result.ok).toBe(true);
+        if (result.ok) expect(result.value).toEqual({ count: 0 });
+      });
+
+      it("should supply the default when the field is undefined", () => {
+        const result = parse({ count: undefined });
+        expect(result.ok).toBe(true);
+        if (result.ok) expect(result.value).toEqual({ count: 0 });
+      });
+
+      it("should retain a present value and infer it without undefined", () => {
+        const result = parse({ count: 3 });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.value).toEqual({ count: 3 });
+          expectTypeOf(result.value.count).toEqualTypeOf<number>();
+        }
+      });
+
+      it("should reject an invalid default", () => {
+        const invalid_default = make_parser({ count: ["?", "n", () => "zero"] as const });
+        expect(invalid_default({}).ok).toBe(false);
+      });
+    });
+
     describe("optional primitives", () => {
       const parse = make_parser({ name: "s", age: "?n" });
 

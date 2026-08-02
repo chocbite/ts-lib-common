@@ -51,6 +51,8 @@ type ResolveSpec<T> = T extends string
   ? ParseTypeString<T>
   : T extends Parser
     ? Parsed<T>
+    : T extends readonly ["?", infer Sub, () => unknown]
+      ? ResolveSpec<Sub>
   : T extends readonly ["?", infer Sub]
     ? ResolveSpec<Sub> | undefined
     : T extends readonly [0, infer Sub]
@@ -78,6 +80,7 @@ type SchemaQNSBL =
   | PrimitiveSpec
   | Parser
   | readonly ["?", SchemaQNSBL]
+  | readonly ["?", SchemaQNSBL, () => unknown]
   | readonly [number, SchemaQNSBL]
   | readonly SchemaQNSBL[]
   | { readonly [key: string]: SchemaQNSBL };
@@ -139,8 +142,14 @@ function validate(
 
   if (Array.isArray(spec)) {
     if (spec[0] === "?") {
-      if (value === undefined) return null;
-        return validate(value, spec[1] as SchemaQNSBL, path);
+      if (value === undefined) {
+        if (spec.length === 2) return null;
+        const default_value = (spec[2] as () => unknown)();
+        const result = validate(default_value, spec[1] as SchemaQNSBL, path);
+        if (typeof result === "string") return result;
+        return result ?? { transformed: default_value };
+      }
+      return validate(value, spec[1] as SchemaQNSBL, path);
     }
 
     if (typeof spec[0] === "number") {
@@ -214,6 +223,7 @@ function validate(
  * Schema spec values:
  * - Type string: "n", "sbl", "nsb" — primitive or union of primitive values
  * - Optional spec: prefix a type string with "?", or use ["?", spec] — permits a missing or undefined value
+ * - Optional default: ["?", spec, () => defaultValue] — supplies a value when the input is missing or undefined
  * - Nested object: { key: spec } — recursively validated object
  * - Nested parser: another parser created by `make_parser`
  * - String tuple: ["ns", "b"] — tuple with per-position types

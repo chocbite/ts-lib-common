@@ -3,7 +3,7 @@ import { make_parser } from "./parse";
 
 const internal_parser = make_parser({
   bln: "b",
-  num: "n",
+  num: ["?", "n", () => 42],
 });
 
 class ParsedClass {
@@ -32,7 +32,7 @@ make_parser({ invalid: "sssssiows" });
 
 const parser = make_parser({
   fom: "b",
-  foo: "?n",
+  foo: ["?", "n"],
   bar: "sb",
   bak: "l",
   part: part_parser,
