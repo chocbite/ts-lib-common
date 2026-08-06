@@ -16,3 +16,9 @@ export function node_clone<T extends Node>(node: T): T {
 export type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
+
+/**Returns true if the object has no own properties */
+export function object_empty(obj: object): boolean {
+  for (const key in obj) if (Object.hasOwnProperty(key)) return false;
+  return true;
+}
