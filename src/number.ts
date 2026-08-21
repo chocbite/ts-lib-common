@@ -1,12 +1,13 @@
 /**Rounds a number to at most the requested number of decimal places without using a regular expression.
  * * @param value - The number to round.
- * @param decimal_count - The maximum number of decimal places.
+ * @param decimals - The maximum number of decimal places, or undefined to not round at all.
  * @returns The rounded number as a string.*/
 export function number_limit_decimals(
   value: number,
-  decimal_count: number,
+  decimals: number | undefined,
 ): string {
-  const result = value.toFixed(decimal_count);
+  if (decimals === undefined) return value.toString();
+  const result = value.toFixed(decimals);
   const decimal_index = result.indexOf(".");
   if (decimal_index === -1) return result;
 
