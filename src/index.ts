@@ -4,6 +4,7 @@ export * from "./bit";
 export * from "./debounce";
 export * from "./diffing";
 export * from "./equals";
+export * from "./hash";
 export * from "./ip";
 export * from "./number";
 export * from "./parse";

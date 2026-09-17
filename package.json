@@ -1,6 +1,6 @@
 {
   "name": "@chocbite/ts-lib-common",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Common utilities for TypeScript",
   "author": "chocolateandmilkwin",
   "license": "MIT",
@@ -34,12 +34,11 @@
   },
   "devDependencies": {
     "@chocbite/ts-supplement-eslint": "^2.0.0",
-    "typescript": "^6.0.3",
-    "tsdown": "^0.22.14",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11",
-    "eslint": "^10.8.1",
-    "@vitest/browser-playwright": "^4.1.11"
+    "tsdown": "^0.23.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1",
+    "eslint": "^10.10.0",
+    "@vitest/browser-playwright": "^5.0.1"
   },
   "dependencies": {
     "@chocbite/ts-lib-result": "^1.4.1"
