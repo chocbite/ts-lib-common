@@ -1,6 +1,6 @@
 {
   "name": "@chocbite/ts-lib-common",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Common utilities for TypeScript",
   "author": "chocolateandmilkwin",
   "license": "MIT",
@@ -25,20 +25,21 @@
     "dev": "vite --port 9959",
     "build": "tsdown src/index.ts",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest run",
+    "test": "vitest run --browser.headless",
+    "test:debug": "vitest",
     "check-deps": "npx depcheck",
     "check-trials": "tsc --noEmit",
-    "prepublishOnly": "npm run check-deps && npm run check-trials && npm run build",
+    "prepublishOnly": "npm run check-deps && npm run check-trials && npm run test && npm run build",
     "upgrades": "npx npm-check-updates --target semver",
     "upgrade": "npx npm-check-updates --target semver -u && npm install"
   },
   "devDependencies": {
     "@chocbite/ts-supplement-eslint": "^2.0.0",
+    "@vitest/browser-playwright": "^5.0.1",
+    "eslint": "^10.10.0",
     "tsdown": "^0.23.0",
     "vite": "^8.3.0",
-    "vitest": "^5.0.1",
-    "eslint": "^10.10.0",
-    "@vitest/browser-playwright": "^5.0.1"
+    "vitest": "^5.0.1"
   },
   "dependencies": {
     "@chocbite/ts-lib-result": "^1.4.1"

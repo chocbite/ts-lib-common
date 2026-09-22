@@ -1,7 +1,15 @@
-/*** Gets the current cursor position (offset) within the contenteditable element.
- * @param element The contenteditable HTML element.
+type TextControl = HTMLInputElement | HTMLTextAreaElement;
+
+function is_text_control(element: HTMLElement): element is TextControl {
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+}
+
+/*** Gets the current cursor position (offset) within a contenteditable element, input, or textarea.
+ * @param element The editable HTML element.
  * @returns The offset number, or -1 if the element is not focused or no selection exists.*/
 export function get_cursor_position(element: HTMLElement): number {
+  if (is_text_control(element)) return element.selectionStart ?? -1;
+
   const selection = window.getSelection();
   if (
     selection &&
@@ -18,13 +26,19 @@ export function get_cursor_position(element: HTMLElement): number {
   return -1;
 }
 
-/** Sets the cursor position (caret) inside the contenteditable element based on a character offset.
- * @param element The contenteditable HTML element.
+/** Sets the cursor position (caret) inside a contenteditable element, input, or textarea.
+ * @param element The editable HTML element.
  * @param offset The character offset from the beginning of the element's text content.*/
 export function set_cursor_position(
   element: HTMLElement,
   offset: number
 ): void {
+  if (is_text_control(element)) {
+    element.focus();
+    element.setSelectionRange(offset, offset);
+    return;
+  }
+
   const selection = window.getSelection();
   let chars = 0;
   const set_caret = (node: Node): boolean => {
@@ -50,9 +64,15 @@ export function set_cursor_position(
   set_caret(element);
 }
 
-/**Sets the cursor (caret) position at the very end of the contenteditable element.
- * @param element The contenteditable HTML element.*/
+/**Sets the cursor (caret) position at the very end of a contenteditable element, input, or textarea.
+ * @param element The editable HTML element.*/
 export function set_cursor_end(element: HTMLElement): void {
+  if (is_text_control(element)) {
+    element.focus();
+    element.setSelectionRange(element.value.length, element.value.length);
+    return;
+  }
+
   element.focus();
   const selection = window.getSelection();
   if (selection) {
@@ -72,9 +92,15 @@ export function set_cursor_end(element: HTMLElement): void {
   }
 }
 
-/** Selects all content (text and elements) within the contenteditable element.
- * @param element The contenteditable HTML element.*/
+/** Selects all content (text and elements) within a contenteditable element, input, or textarea.
+ * @param element The editable HTML element.*/
 export function set_selection_all(element: HTMLElement): void {
+  if (is_text_control(element)) {
+    element.focus();
+    element.select();
+    return;
+  }
+
   element.focus();
   const selection = window.getSelection();
   if (selection) {
