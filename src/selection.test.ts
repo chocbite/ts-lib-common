@@ -59,6 +59,23 @@ describe("selection", () => {
     expect(get_cursor_position(element)).toBe(5);
   });
 
+  it("gets the cursor position at the end of nested contenteditable text", () => {
+    const element = create_contenteditable();
+    element.replaceChildren(...text.split("").map((character) => {
+      const span = document.createElement("span");
+      span.textContent = character;
+      return span;
+    }));
+    const last_text_node = element.lastChild?.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(last_text_node, last_text_node.length);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    expect(get_cursor_position(element)).toBe(text.length);
+  });
+
   it.each(editable_elements)("sets the cursor position for %s", (_, create_element) => {
     const element = create_element();
 

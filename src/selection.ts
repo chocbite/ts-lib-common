@@ -1,7 +1,10 @@
 type TextControl = HTMLInputElement | HTMLTextAreaElement;
 
 function is_text_control(element: HTMLElement): element is TextControl {
-  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement
+  );
 }
 
 /*** Gets the current cursor position (offset) within a contenteditable element, input, or textarea.
@@ -17,7 +20,6 @@ export function get_cursor_position(element: HTMLElement): number {
     element.contains(selection.anchorNode)
   ) {
     const range = selection.getRangeAt(0);
-    if (range.collapsed) return selection.anchorOffset;
     const pre_caret_range = range.cloneRange();
     pre_caret_range.selectNodeContents(element);
     pre_caret_range.setEnd(range.startContainer, range.startOffset);
@@ -31,7 +33,7 @@ export function get_cursor_position(element: HTMLElement): number {
  * @param offset The character offset from the beginning of the element's text content.*/
 export function set_cursor_position(
   element: HTMLElement,
-  offset: number
+  offset: number,
 ): void {
   if (is_text_control(element)) {
     element.focus();
