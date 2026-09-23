@@ -36,6 +36,7 @@
   "devDependencies": {
     "@chocbite/ts-supplement-eslint": "^2.0.0",
     "@vitest/browser-playwright": "^5.0.1",
+    "@playwright/test": "^1.63.0",
     "eslint": "^10.10.0",
     "tsdown": "^0.23.0",
     "vite": "^8.3.0",
