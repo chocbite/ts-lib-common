@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  deferrer,
   is_promise_like,
   sleep,
   sleep_lazy,
@@ -238,5 +239,47 @@ describe("sleep_lazy", () => {
     const promise = sleep_lazy(50, () => ({ key: "value" }));
     vi.advanceTimersByTime(50);
     await expect(promise).resolves.toEqual({ key: "value" });
+  });
+});
+
+describe("defer", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("schedules the function only when the returned function is called", () => {
+    const callback = vi.fn();
+    const schedule = deferrer(100, callback);
+
+    vi.advanceTimersByTime(100);
+    expect(callback).not.toHaveBeenCalled();
+
+    schedule();
+    vi.advanceTimersByTime(100);
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not execute the function before the given delay", () => {
+    const callback = vi.fn();
+    const schedule = deferrer(100, callback);
+
+    schedule();
+    vi.advanceTimersByTime(99);
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it("calls the function with the provided argument", () => {
+    const callback = vi.fn();
+    const schedule = deferrer(100, callback, "value");
+
+    schedule();
+    vi.advanceTimersByTime(100);
+
+    expect(callback).toHaveBeenCalledWith("value");
   });
 });

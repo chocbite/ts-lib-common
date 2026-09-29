@@ -17,6 +17,15 @@ export function sleep_lazy<T = void>(ms: number, arg?: () => T): Promise<T> {
   return new Promise((a) => setTimeout((arg: () => T) => a(arg()), ms, arg));
 }
 
+/**Returns a function that, when called, will execute the given function after the given number of milliseconds with the given argument (if any).*/
+export function deferrer<T = void>(
+  ms: number,
+  f: () => void,
+  arg?: T,
+): () => void {
+  return () => setTimeout(f, ms, arg);
+}
+
 /**Returns a promise that executes synchronously when using .then() and resolves immediately with the given value.*/
 export function sync_resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
   if (is_promise_like(value)) return value;
@@ -38,7 +47,7 @@ export function sync_resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
         return sync_reject(error as any);
       }
     },
-  } as PromiseLike<T>;
+  };
 }
 
 /**Returns a promise that executes synchronously when using .catch() and rejects immediately with the given value.*/
@@ -60,5 +69,5 @@ export function sync_reject<T>(error: T | PromiseLike<T>): PromiseLike<T> {
         return sync_reject(err as any);
       }
     },
-  } as PromiseLike<T>;
+  };
 }
