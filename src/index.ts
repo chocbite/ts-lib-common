@@ -8,6 +8,7 @@ export * from "./hash";
 export * from "./ip";
 export * from "./number";
 export * from "./parse";
+export * from "./fetch_parse";
 export * from "./selection";
 export * from "./throttle";
 
